@@ -1,58 +1,92 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-function WithoutApi() {
-  const [list, setList] = useState([
-    { id: 1, title: 'John' },
-    { id: 2, title: 'Anna' },
-    { id: 3, title: 'Peter' },
-  ]);
-
+function TodoApp() {
+  const [list, setList] = useState([]);
   const [post, setPost] = useState('');
   const [editId, setEditId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
 
-  // Handle input change
+  const API_URL = 'https://jsonplaceholder.typicode.com/todos';
+
+  // 🟢 Fetch the list from the API when the component loads
+  useEffect(() => {
+    fetch(API_URL + '?_limit=10') // Limit to 10 items for simplicity
+      .then((response) => response.json())
+      .then((data) => setList(data))
+      .catch((error) => console.error('Error fetching data:', error));
+  }, []);
+
+  // 🟢 Handle input change
   const handleChange = (event) => {
     setPost(event.target.value);
   };
 
-  // Handle form submit
+  // 🟢 Handle form submit to create a new todo
   const handleSubmit = (event) => {
     event.preventDefault();
     if (!post.trim()) return; // Prevent empty submissions
 
     const newPost = {
-      id: new Date().getTime(), // Generate a unique ID
       title: post,
+      completed: false,
     };
 
-    setList([newPost, ...list]);
-    setPost('');
+    fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newPost),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        setList([data, ...list]);
+        setPost('');
+      })
+      .catch((error) => console.error('Error adding todo:', error));
   };
 
-  // Handle delete
+  // 🟢 Handle delete
   const handleDelete = (id) => {
-    setList(list.filter((item) => item.id !== id));
+    fetch(`${API_URL}/${id}`, {
+      method: 'DELETE',
+    })
+      .then(() => {
+        setList(list.filter((item) => item.id !== id));
+      })
+      .catch((error) => console.error('Error deleting todo:', error));
   };
 
-  // Handle edit
+  // 🟢 Handle edit
   const handleEdit = (id, title) => {
     setEditId(id);
     setEditTitle(title);
   };
 
-  // Handle edit input change
+  // 🟢 Handle edit input change
   const handleEditChange = (event) => {
     setEditTitle(event.target.value);
   };
 
-  // Handle save after editing
+  // 🟢 Handle save after editing
   const handleSave = () => {
-    setList(list.map((item) => (item.id === editId ? { ...item, title: editTitle } : item)));
-    setEditId(null);
+    const updatedPost = {
+      title: editTitle,
+    };
+
+    fetch(`${API_URL}/${editId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedPost),
+    })
+      .then((response) => response.json())
+      .then(() => {
+        setList(list.map((item) => (item.id === editId ? { ...item, title: editTitle } : item)));
+        setEditId(null);
+        setEditTitle('');
+      })
+      .catch((error) => console.error('Error updating todo:', error));
   };
 
-  // Handle cancel edit
+  // 🟢 Handle cancel edit
   const handleCancel = () => {
     setEditId(null);
     setEditTitle('');
@@ -103,10 +137,7 @@ function WithoutApi() {
                   >
                     Edit
                   </button>
-                  <button
-                    className="btn btn-danger"
-                    onClick={() => handleDelete(item.id)}
-                  >
+                  <button className="btn btn-danger" onClick={() => handleDelete(item.id)}>
                     Delete
                   </button>
                 </div>
@@ -119,4 +150,4 @@ function WithoutApi() {
   );
 }
 
-export default WithoutApi;
+export default TodoApp;
